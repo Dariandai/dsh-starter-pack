@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node
+node_modules/
+*.tgz
+
+# dsh-starter-pack build artifacts (rebuilt by npm run build / prepack)
+/lib/
+/client/
