@@ -10,8 +10,16 @@ New DSH users face 400+ community plugins and no idea which to install. `dsh-sta
 
 ## Install
 
+Published to npm — installs from the prebuilt npm package, so no pnpm build approval is needed:
+
 ```sh
 dsh plugin --profile web add dsh-starter-pack
+```
+
+Install from GitHub source (optional):
+
+```sh
+dsh plugin --profile web add github:Dariandai/dsh-starter-pack
 ```
 
 Restart `dsh web`, then open **Settings → Starter Pack**, or run `/setup`.

@@ -10,8 +10,16 @@ DSH 社区已有 400+ 插件,新用户面对海量选择不知装什么。`dsh-s
 
 ## 安装
 
+包已发布到 npm,直接安装即可(走 npm 预构建产物,免 pnpm 构建授权):
+
 ```sh
 dsh plugin --profile web add dsh-starter-pack
+```
+
+GitHub 源码安装(可选):
+
+```sh
+dsh plugin --profile web add github:Dariandai/dsh-starter-pack
 ```
 
 重启 `dsh web`,打开 **设置 → Starter Pack**,或在对话里用 `/setup`。
