@@ -74,11 +74,18 @@ export function PackSection({ t }: Props): ReactElement {
 
   const load = (): void => {
     setLoading(true)
-    void fetch('/dsh-starter-pack/registry')
+    fetch('/dsh-starter-pack/registry')
       .then((r) => (r.ok ? r.json() as Promise<{ groups: RegistryGroup[] }> : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data) => { setGroups(data.groups); setResults(null); setError(null) })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
+    fetch('/dsh-starter-pack/stars')
+      .then((r) => (r.ok ? r.json() as Promise<{ stars: Record<string, number> }> : Promise.resolve({ stars: {} as Record<string, number> })))
+      .then(({ stars }) => {
+        if (Object.keys(stars).length === 0) return
+        setGroups((prev) => prev.map((g) => ({ ...g, plugins: g.plugins.map((p) => (stars[p.id] !== undefined ? { ...p, stars: stars[p.id] } : p)) })))
+      })
+      .catch(() => {})
   }
 
   useEffect(load, [])

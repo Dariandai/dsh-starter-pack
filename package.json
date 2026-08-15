@@ -1,7 +1,7 @@
 {
   "name": "dsh-starter-pack",
   "description": "One-click curated plugin starter pack for DeepSeek Harness — install & configure the most useful community plugins in a batch. · DSH 精选插件包：一键批量安装并配置最值得装的社区插件。",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

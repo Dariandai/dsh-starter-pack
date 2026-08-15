@@ -32,6 +32,10 @@ export interface BatchItemResult {
 
 const progress: InstallProgress = { active: false, current: '', done: 0, total: 0, lastLine: '', startedAt: 0 }
 
+const AWESOME_PLUGINS_URL = 'https://awesome-dsh-plugin.com/plugins.json'
+const STAR_CACHE_TTL = 6 * 60 * 60 * 1000
+const starCache = new Map<string, { plugins: AwesomeEntry[]; expires: number }>()
+
 function sendJson(response: ServerResponse, status: number, payload: unknown): void {
   response.writeHead(status, {
     'cache-control': 'no-store',
@@ -141,6 +145,54 @@ export async function tryEnableEntry(host: StarterHost, name: string): Promise<b
   return false
 }
 
+interface AwesomeEntry {
+  url?: string
+  stars?: number
+}
+
+function normalizeUrl(url: string): string {
+  return url.replace(/\/+$/, '').toLowerCase()
+}
+
+/** Live stars for every curated plugin, keyed by plugin id; never throws.
+ * Pulls the star snapshot from the awesome-dsh-plugin registry (Cloudflare-hosted,
+ * reachable without a GitHub proxy), falling back to the static value for plugins
+ * missing from that list or on any network failure. */
+async function collectStars(): Promise<Record<string, number>> {
+  const cached = starCache.get('awesome')
+  let entries: AwesomeEntry[] | undefined
+  if (cached !== undefined && cached.expires > Date.now()) {
+    entries = cached.plugins
+  } else {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 20000)
+    try {
+      const response = await fetch(AWESOME_PLUGINS_URL, { signal: controller.signal })
+      if (response.ok) {
+        const data = (await response.json()) as { plugins?: AwesomeEntry[] }
+        entries = data.plugins ?? []
+        starCache.set('awesome', { plugins: entries, expires: Date.now() + STAR_CACHE_TTL })
+      }
+    } catch {
+      entries = undefined
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  const byUrl = new Map<string, number>()
+  if (entries !== undefined) {
+    for (const entry of entries) {
+      if (typeof entry.url === 'string' && typeof entry.stars === 'number') byUrl.set(normalizeUrl(entry.url), entry.stars)
+    }
+  }
+  const stars: Record<string, number> = {}
+  for (const plugin of flatPlugins()) {
+    const live = byUrl.get(normalizeUrl(plugin.url))
+    stars[plugin.id] = live ?? plugin.stars
+  }
+  return stars
+}
+
 /** Register the Starter Pack HTTP routes. */
 export function mountRoutes(host: StarterHost, profile: string): () => void {
   const disposers = [
@@ -171,6 +223,19 @@ export function mountRoutes(host: StarterHost, profile: string): () => void {
           })),
         }))
         sendJson(response, 200, { groups, profile })
+      },
+    }),
+
+    host.webServer.register({
+      kind: 'exact',
+      path: '/dsh-starter-pack/stars',
+      handler: async (request, response) => {
+        if (request.method !== 'GET') {
+          response.writeHead(405, { allow: 'GET' })
+          response.end()
+          return
+        }
+        sendJson(response, 200, { stars: await collectStars() })
       },
     }),
 
